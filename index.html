@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Clearlane — Transaction Data Validator</title>
+<meta name="description" content="Upload transaction data, validate phone numbers, dates and payment fields against configurable rules, then export a clean file split into chunks." />
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%231f8a5c'/%3E%3Cpath d='M7 12.5l3.2 3.2L17 8.8' stroke='white' stroke-width='2.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<!-- ===================== TOP BAR ===================== -->
+<header class="topbar">
+  <div class="container topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4 4L19 7.5"/></svg>
+      </span>
+      Clearlane
+    </div>
+    <nav class="topnav">
+      <a href="#how-it-works"><span>How it works</span></a>
+      <a href="#config"><span>Validation rules</span></a>
+      <a href="https://github.com/" target="_blank" rel="noopener"><span data-icon="externalLink"></span><span>View source</span></a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===================== HERO ===================== -->
+<section class="hero">
+  <div class="container">
+    <span class="hero-eyebrow"><span data-icon="sparkle"></span>Built for Xeno</span>
+    <h1>Catch bad transaction data <em>before</em> it ships.</h1>
+    <p class="hero-sub">
+      Drop in a CSV of order, product and payment data. Clearlane checks every phone number
+      against country-specific digit rules, validates dates and times against the format you
+      choose, flags broken rows with a reason, and hands you back a clean file — split into
+      download-ready chunks.
+    </p>
+
+    <div class="feature-strip">
+      <div class="feature-chip" data-icon="globe">Configurable country phone rules</div>
+      <div class="feature-chip" data-icon="calendar">Date &amp; time format checks</div>
+      <div class="feature-chip" data-icon="checkCircle">Field-level integrity checks</div>
+      <div class="feature-chip" data-icon="layers">Auto-chunked export</div>
+    </div>
+  </div>
+</section>
+
+<div class="container">
+  <!-- ===================== PIPELINE STEPPER ===================== -->
+  <div class="lanes" id="how-it-works">
+    <div class="lanes-row" id="lanesRow">
+      <div class="lanes-track"></div>
+      <div class="lanes-progress" id="lanesProgress"></div>
+      <div class="lane-step is-active" data-step="1">
+        <div class="lane-node" data-icon="upload"></div>
+        <div class="lane-label">
+          <span class="lane-title">Upload</span>
+          <span class="lane-desc">Bring your CSV in</span>
+        </div>
+      </div>
+      <div class="lane-step" data-step="2">
+        <div class="lane-node" data-icon="sliders"></div>
+        <div class="lane-label">
+          <span class="lane-title">Configure</span>
+          <span class="lane-desc">Set country &amp; format rules</span>
+        </div>
+      </div>
+      <div class="lane-step" data-step="3">
+        <div class="lane-node" data-icon="checkCircle"></div>
+        <div class="lane-label">
+          <span class="lane-title">Validate</span>
+          <span class="lane-desc">Review row-by-row results</span>
+        </div>
+      </div>
+      <div class="lane-step" data-step="4">
+        <div class="lane-node" data-icon="download"></div>
+        <div class="lane-label">
+          <span class="lane-title">Export</span>
+          <span class="lane-desc">Clean file, split &amp; zipped</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== WORKFLOW ===================== -->
+  <div class="workflow">
+
+    <!-- STEP 1 — UPLOAD -->
+    <section class="card">
+      <div class="card-head">
+        <div class="card-head-text">
+          <span class="card-num">1</span>
+          <div>
+            <h2 class="card-title">Upload your dataset</h2>
+            <p class="card-desc">Order-level, product-level and payment-mode columns in a single CSV. No file ready? Load the sample set and see every rule fire.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="dropzone" id="dropzone">
+          <div class="dropzone-icon" data-icon="upload"></div>
+          <div class="dropzone-title">Drag and drop your CSV here</div>
+          <div class="dropzone-sub">or click to browse · .csv files only</div>
+          <input type="file" id="fileInput" accept=".csv" />
+        </div>
+
+        <div class="dropzone-actions">
+          <button class="btn btn-secondary" id="sampleBtn" data-icon="database">Load sample dataset</button>
+          <span class="dropzone-divider">·</span>
+          <button class="btn btn-ghost" id="clearFileBtn" data-icon="refresh" style="display:none;">Start over</button>
+        </div>
+
+        <div id="filePillSlot"></div>
+
+        <details class="col-ref">
+          <summary><span data-icon="info"></span>Expected columns reference</summary>
+          <div class="col-ref-grid">
+            <div class="col-ref-item"><b>order_id</b> — required, unique</div>
+            <div class="col-ref-item"><b>customer_name</b></div>
+            <div class="col-ref-item"><b>phone_number</b> — required</div>
+            <div class="col-ref-item"><b>country_code</b> — required</div>
+            <div class="col-ref-item"><b>email</b></div>
+            <div class="col-ref-item"><b>product_id</b></div>
+            <div class="col-ref-item"><b>product_name</b> — required</div>
+            <div class="col-ref-item"><b>quantity</b> — required</div>
+            <div class="col-ref-item"><b>unit_price</b> — required</div>
+            <div class="col-ref-item"><b>payment_mode</b> — required</div>
+            <div class="col-ref-item"><b>order_date</b> — required</div>
+            <div class="col-ref-item"><b>order_time</b></div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- STEP 2 — CONFIGURE -->
+    <section class="card" id="config">
+      <div class="card-head">
+        <div class="card-head-text">
+          <span class="card-num">2</span>
+          <div>
+            <h2 class="card-title">Configure validation rules</h2>
+            <p class="card-desc">Country phone rules are fully editable — add a market, change a digit count, or remove one you don't need.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="config-grid">
+          <div>
+            <div class="config-block-title" data-icon="globe">Country phone rules</div>
+            <table class="rule-table">
+              <thead>
+                <tr><th>Country</th><th>Code</th><th style="width:64px;">Digits</th><th></th></tr>
+              </thead>
+              <tbody id="ruleTableBody"></tbody>
+            </table>
+            <button class="add-row-btn" id="addRuleBtn" data-icon="plus">Add country</button>
+          </div>
+
+          <div>
+            <div class="config-block-title" data-icon="calendar">Date &amp; time format</div>
+
+            <div class="field-group">
+              <label class="field-label" for="dateFormatSelect">Expected date format</label>
+              <div class="select-wrap">
+                <select class="select" id="dateFormatSelect"></select>
+                <span data-icon="chevronDown"></span>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="timeFormatSelect">Expected time format</label>
+              <div class="select-wrap">
+                <select class="select" id="timeFormatSelect"></select>
+                <span data-icon="chevronDown"></span>
+              </div>
+            </div>
+
+            <div class="field-group" style="margin-bottom:0;">
+              <label class="field-label" for="paymentModesInput">Allowed payment modes</label>
+              <input class="text-input" id="paymentModesInput" type="text" />
+              <p class="field-hint">Comma-separated. Matched case-insensitively.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary btn-lg" id="validateBtn" data-icon="checkCircle" disabled>Run validation</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 3 — RESULTS -->
+    <section class="card">
+      <div class="card-head">
+        <div class="card-head-text">
+          <span class="card-num">3</span>
+          <div>
+            <h2 class="card-title">Validation results</h2>
+            <p class="card-desc">Every row, its status, and exactly why it was flagged.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-body" id="resultsBody">
+        <div class="empty-state">
+          <div class="empty-state-icon" data-icon="fileText"></div>
+          <div class="empty-state-title">No results yet</div>
+          <div class="empty-state-sub">Upload a file and run validation above to see row-by-row results here.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 4 — EXPORT -->
+    <section class="card">
+      <div class="card-head">
+        <div class="card-head-text">
+          <span class="card-num">4</span>
+          <div>
+            <h2 class="card-title">Export</h2>
+            <p class="card-desc">Download the clean file, the rejected rows with reasons, or split everything into chunks.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="export-grid">
+          <div class="export-card">
+            <div class="export-icon tone-accent" data-icon="checkCircle"></div>
+            <div class="export-title">Clean dataset</div>
+            <div class="export-desc">Only rows that passed every check, ready to load downstream.</div>
+            <button class="btn btn-secondary btn-block" id="downloadCleanBtn" data-icon="download" disabled>Download clean.csv</button>
+          </div>
+
+          <div class="export-card">
+            <div class="export-icon tone-danger" data-icon="alertTriangle"></div>
+            <div class="export-title">Rejected rows</div>
+            <div class="export-desc">Failed rows plus a column explaining exactly why.</div>
+            <button class="btn btn-secondary btn-block" id="downloadRejectedBtn" data-icon="download" disabled>Download rejected.csv</button>
+          </div>
+
+          <div class="export-card">
+            <div class="export-icon tone-warn" data-icon="layers"></div>
+            <div class="export-title">Chunked export</div>
+            <div class="export-desc">Split the clean dataset into smaller files, bundled as a .zip.</div>
+            <div class="chunk-input-row">
+              <input type="number" class="chunk-input" id="chunkSizeInput" value="500" min="10" step="10" />
+              <span class="chunk-note" id="chunkNote">rows per file</span>
+            </div>
+            <button class="btn btn-secondary btn-block" id="downloadChunksBtn" data-icon="zip" disabled>Download .zip</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container site-footer-inner">
+    <span>Clearlane — built for the Xeno Implementation Internship assignment, Part 4.</span>
+    <a href="https://pages.github.com/" target="_blank" rel="noopener"><span data-icon="externalLink"></span>Hosted on GitHub Pages</a>
+  </div>
+</footer>
+
+<!-- Vendor: CSV parsing + zip bundling, loaded from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script src="js/icons.js"></script>
+<script src="js/countryConfig.js"></script>
+<script src="js/validators.js"></script>
+<script src="js/chunker.js"></script>
+<script src="js/sampleData.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
